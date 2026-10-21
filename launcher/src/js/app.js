@@ -16,6 +16,7 @@
     pickedUpId: null,
     focusId: FOCUS_EDIT,
     previewing: false,
+    previewPending: false,
     previewSourceKey: null,
     previewSeq: 0
   };
@@ -450,6 +451,7 @@
   function stopPreview(focusBack) {
     var seq = ++state.previewSeq;
     state.previewing = false;
+    state.previewPending = false;
     document.body.classList.remove('previewing');
     if (!hasApi('tizen.tvwindow.hide')) {
       if (focusBack) {
@@ -477,6 +479,34 @@
     }
   }
 
+  function cancelPreviewOperations(focusBack) {
+    state.previewSeq++;
+    state.previewPending = false;
+    state.previewing = false;
+    document.body.classList.remove('previewing');
+    if (!hasApi('tizen.tvwindow.hide')) {
+      if (focusBack) {
+        applyFocusDom();
+      }
+      return;
+    }
+    try {
+      tizen.tvwindow.hide(function () {
+        if (focusBack) {
+          applyFocusDom();
+        }
+      }, function () {
+        if (focusBack) {
+          applyFocusDom();
+        }
+      }, 'MAIN');
+    } catch (e) {
+      if (focusBack) {
+        applyFocusDom();
+      }
+    }
+  }
+
   function startSourcePreview(source) {
     if (!hasApi('tizen.tvwindow.setSource')) {
       showToast('NotSupportedError');
@@ -484,6 +514,7 @@
     }
     var key = source.type + ':' + source.number;
     state.previewSourceKey = key;
+    state.previewPending = true;
     var op = ++state.previewSeq;
     try {
       tizen.tvwindow.setSource(source, function () {
@@ -494,15 +525,25 @@
           if (op !== state.previewSeq) {
             return;
           }
+          state.previewPending = false;
           state.previewing = true;
           document.body.classList.add('previewing');
         }, function (e) {
+          if (op !== state.previewSeq) {
+            return;
+          }
+          state.previewPending = false;
           showToast(errName(e));
         }, fullScreenPreviewRect(), 'MAIN');
       }, function (e) {
+        if (op !== state.previewSeq) {
+          return;
+        }
+        state.previewPending = false;
         showToast(errName(e));
       }, 'MAIN');
     } catch (e) {
+      state.previewPending = false;
       showToast(errName(e));
     }
   }
@@ -514,6 +555,9 @@
   }
 
   function hideApp() {
+    if (state.previewPending || state.previewing) {
+      cancelPreviewOperations(false);
+    }
     try {
       tizen.application.getCurrentApplication().hide();
     } catch (e) { /* ignore */ }
@@ -556,6 +600,10 @@
     if (code === KEY.BACK) {
       handled = true;
       ev.preventDefault();
+      if (state.previewPending) {
+        cancelPreviewOperations(true);
+        return;
+      }
       if (state.editMode) {
         state.editMode = false;
         state.pickedUpId = null;
