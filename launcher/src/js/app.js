@@ -71,11 +71,18 @@
     }, 3200);
   }
 
-  function iconSrc(path) {
-    if (!path) {
-      return 'icon.png';
+  function attachTileIcon(btn, iconPath) {
+    var plan = iconLoadPlan(iconPath);
+    var img = document.createElement('img');
+    img.alt = '';
+    img.src = plan.src;
+    if (plan.remote) {
+      img.onerror = function () {
+        img.onerror = null;
+        img.src = FALLBACK_ICON;
+      };
     }
-    return /^(file|https?|data):/.test(path) ? path : 'file://' + path;
+    btn.insertBefore(img, btn.firstChild);
   }
 
   function sourceLabel(source) {
@@ -203,15 +210,8 @@
       span.textContent = opts.label;
       btn.appendChild(span);
     }
-    if (opts.imgSrc !== undefined) {
-      var img = document.createElement('img');
-      img.alt = '';
-      img.src = opts.imgSrc;
-      img.onerror = function () {
-        img.onerror = null;
-        img.src = 'icon.png';
-      };
-      btn.insertBefore(img, btn.firstChild);
+    if (opts.iconPath !== undefined) {
+      attachTileIcon(btn, opts.iconPath);
     }
     btn.addEventListener('click', opts.onActivate || function () {});
     return btn;
@@ -234,7 +234,7 @@
       var tile = makeTile({
         focusId: favFocusId(id),
         label: app.name,
-        imgSrc: iconSrc(app.iconPath),
+        iconPath: app.iconPath,
         extraClass: state.pickedUpId === id ? 'picked' : '',
         onActivate: function () { onFavouriteActivate(id); }
       });
@@ -280,23 +280,38 @@
 
   function renderApps() {
     var box = $('apps');
-    box.innerHTML = '';
+    var frag = document.createDocumentFragment();
     state.apps.forEach(function (app) {
-      var pinned = state.favouriteIds.indexOf(app.id) >= 0;
-      var tile = makeTile({
-        focusId: appFocusId(app.id),
-        label: app.name,
-        imgSrc: iconSrc(app.iconPath),
-        onActivate: function () { onAppActivate(app); }
-      });
-      if (pinned && state.editMode) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'f tile';
+      btn.setAttribute('data-focus-id', appFocusId(app.id));
+      btn.setAttribute('data-app-id', app.id);
+      attachTileIcon(btn, app.iconPath);
+      var label = document.createElement('span');
+      label.className = 'label';
+      label.textContent = app.name;
+      btn.appendChild(label);
+      if (state.editMode && state.favouriteIds.indexOf(app.id) >= 0) {
         var badge = document.createElement('span');
         badge.className = 'badge-pin';
         badge.textContent = 'Pinned';
-        tile.appendChild(badge);
+        btn.appendChild(badge);
       }
-      box.appendChild(tile);
+      frag.appendChild(btn);
     });
+    box.replaceChildren(frag);
+  }
+
+  function onAppsGridClick(ev) {
+    var btn = ev.target.closest('[data-app-id]');
+    if (!btn) {
+      return;
+    }
+    var app = appById(btn.getAttribute('data-app-id'));
+    if (app) {
+      onAppActivate(app);
+    }
   }
 
   function renderAll() {
@@ -432,10 +447,6 @@
     }
   }
 
-  function previewRect() {
-    return { x: 0, y: 0, width: 1920, height: 1080 };
-  }
-
   function stopPreview(focusBack) {
     var seq = ++state.previewSeq;
     state.previewing = false;
@@ -487,7 +498,7 @@
           document.body.classList.add('previewing');
         }, function (e) {
           showToast(errName(e));
-        }, previewRect(), 'MAIN');
+        }, fullScreenPreviewRect(), 'MAIN');
       }, function (e) {
         showToast(errName(e));
       }, 'MAIN');
@@ -575,6 +586,7 @@
     state.favouriteIds = readFavouritesFromStorage();
     $('btnEdit').setAttribute('data-focus-id', FOCUS_EDIT);
     $('btnEdit').addEventListener('click', toggleEditMode);
+    $('apps').addEventListener('click', onAppsGridClick);
 
     document.addEventListener('keydown', onKeyDown);
     document.addEventListener('visibilitychange', function () {

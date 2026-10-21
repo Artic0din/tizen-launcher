@@ -13,7 +13,8 @@ Sideloaded Tizen web launcher for Ryan's S95C (One UI Tizen 9, Chromium M120). P
 - App grid from `tizen.application.getAppsInfo()` (`show === true`, launcher excluded), sorted by name, fallback icon on load error.
 - Favourites row with pin/unpin, reorder, remove; order in `localStorage` by real app id; stale ids pruned on refresh.
 - **Edit favourites** toggle for remote editing (S95C Smart Remote has no colour keys).
-- Sources row from `VIDEOSOURCE.connected` only; Enter previews full-window via `tvwindow`; Back/Enter ends preview.
+- Sources row from `VIDEOSOURCE.connected` only; Enter previews full-window via `tvwindow.show(['0px','0px','1920px','1080px'])` (string array — object rects throw `TypeMismatchError` on device); Back/Enter ends preview.
+- Grid targets ~256 visible apps: fallback icon for missing/broken `iconPath`, `DocumentFragment` batching, delegated grid clicks.
 - D-pad focus is owned by the app (`preventDefault` on handled arrows/Enter/Back). Back on home calls `hide()`; Back in edit mode exits edit first.
 - No extra remote keys registered in this MVP.
 

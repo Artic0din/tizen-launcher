@@ -87,7 +87,7 @@ fs.mkdirSync(outDir, { recursive: true });
   const report = {};
 
   await send('Page.navigate', { url: 'file://' + path.join(root, 'test/harness.html') });
-  await wait(1200);
+  await wait(2000);
 
   report.home = await state();
   await shot('01-home.png');
@@ -100,7 +100,7 @@ fs.mkdirSync(outDir, { recursive: true });
   await evalValue('window.__launcher.setFocus("focus:edit"); document.getElementById("btnEdit").click()');
   await wait(150);
   report.editMode = await evalValue('window.__launcher.getState().editMode');
-  await evalValue('window.__launcher.setFocus("focus:app:111299001912"); document.querySelector("[data-focus-id=\\"focus:app:111299001912\\"]").click()');
+  await evalValue('window.__launcher.setFocus("focus:app:com.samsung.tv.cobalt-yt"); document.querySelector("[data-focus-id=\\"focus:app:com.samsung.tv.cobalt-yt\\"]").click()');
   await wait(150);
   report.afterPin = {
     favourites: await evalValue('window.__launcher.getState().favouriteIds'),
@@ -108,13 +108,13 @@ fs.mkdirSync(outDir, { recursive: true });
   };
   await shot('03-edit-pin.png');
 
-  await evalValue('window.__launcher.setFocus("focus:app:3201606009798"); document.querySelector("[data-focus-id=\\"focus:app:3201606009798\\"]").click()');
+  await evalValue('window.__launcher.setFocus("focus:app:org.tizen.netflix-app"); document.querySelector("[data-focus-id=\\"focus:app:org.tizen.netflix-app\\"]").click()');
   await wait(150);
-  await evalValue('window.__launcher.setFocus("focus:fav:111299001912"); document.querySelector("[data-focus-id=\\"focus:fav:111299001912\\"]").click()');
+  await evalValue('window.__launcher.setFocus("focus:fav:com.samsung.tv.cobalt-yt"); document.querySelector("[data-focus-id=\\"focus:fav:com.samsung.tv.cobalt-yt\\"]").click()');
   await wait(100);
   await key(39);
   await wait(100);
-  await evalValue('document.querySelector("[data-focus-id=\\"focus:fav:111299001912\\"]").click()');
+  await evalValue('document.querySelector("[data-focus-id=\\"focus:fav:com.samsung.tv.cobalt-yt\\"]").click()');
   await wait(150);
   report.favouriteMoved = {
     favourites: await evalValue('window.__launcher.getState().favouriteIds'),
@@ -126,7 +126,7 @@ fs.mkdirSync(outDir, { recursive: true });
   await wait(150);
   report.editOff = await evalValue('window.__launcher.getState().editMode');
 
-  await evalValue('window.__launcher.setFocus("focus:app:fail.launch.app"); document.querySelector("[data-focus-id=\\"focus:app:fail.launch.app\\"]").click()');
+  await evalValue('window.__launcher.setFocus("focus:app:org.tizen.primevideo-dummy"); document.querySelector("[data-focus-id=\\"focus:app:org.tizen.primevideo-dummy\\"]").click()');
   await wait(400);
   report.launchErrorToast = await evalValue("document.getElementById('toast').textContent");
   await shot('05-launch-error-toast.png');
@@ -137,12 +137,13 @@ fs.mkdirSync(outDir, { recursive: true });
     previewing: await evalValue('window.__launcher.getState().previewing'),
     bodyClass: await evalValue('document.body.className')
   };
+  report.tvwindowShowCall = await evalValue("(window.__calls||[]).find(function(c){return c.indexOf('show')===0;})||''");
   await shot('06-hdmi-preview.png');
   await key(10009);
   await wait(300);
 
   await send('Page.navigate', { url: 'file://' + path.join(root, 'test/harness-missing.html') });
-  await wait(1200);
+  await wait(2000);
   report.sourcesUnavailable = await evalValue("document.getElementById('sourcesMsg').textContent");
   await shot('07-sources-unavailable.png');
 
@@ -152,8 +153,11 @@ fs.mkdirSync(outDir, { recursive: true });
   if (!report.editMode) {
     throw new Error('edit mode was not enabled during harness run');
   }
-  if (!report.afterPin.favourites.includes('111299001912')) {
+  if (!report.afterPin.favourites.includes('com.samsung.tv.cobalt-yt')) {
     throw new Error('pin did not persist YouTube in favourites');
+  }
+  if (report.tvwindowShowCall.indexOf('0px') < 0) {
+    throw new Error('tvwindow.show was not called with px string array rect: ' + report.tvwindowShowCall);
   }
   if (report.launchErrorToast.indexOf('NotFoundError') < 0) {
     throw new Error('expected NotFoundError toast, got: ' + report.launchErrorToast);
