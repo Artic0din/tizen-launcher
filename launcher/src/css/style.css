@@ -12,7 +12,7 @@ body.previewing {
   background: transparent;
 }
 
-body.previewing .shell {
+body.previewing #appShell {
   visibility: hidden;
 }
 
@@ -52,6 +52,8 @@ h2 {
   gap: 20px;
   min-height: 140px;
   align-items: flex-start;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .grid {
@@ -59,7 +61,8 @@ h2 {
   flex-wrap: wrap;
   gap: 20px;
   max-height: 620px;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: auto;
   align-content: flex-start;
 }
 

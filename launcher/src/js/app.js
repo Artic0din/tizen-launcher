@@ -18,7 +18,8 @@
     previewing: false,
     previewPending: false,
     previewSourceKey: null,
-    previewSeq: 0
+    previewSeq: 0,
+    appsError: null
   };
 
   function $(id) { return document.getElementById(id); }
@@ -171,6 +172,9 @@
     if (el) {
       el.classList.add('focus');
       el.focus();
+      if (el.scrollIntoView) {
+        el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      }
     }
   }
 
@@ -315,10 +319,25 @@
     }
   }
 
+  function renderAppsError() {
+    var el = $('appsError');
+    if (!el) {
+      return;
+    }
+    if (state.appsError) {
+      el.textContent = state.appsError;
+      el.classList.remove('hidden');
+    } else {
+      el.textContent = '';
+      el.classList.add('hidden');
+    }
+  }
+
   function renderAll() {
     renderEditUi();
     renderFavourites();
     renderSources();
+    renderAppsError();
     renderApps();
     ensureFocusValid();
     applyFocusDom();
@@ -383,7 +402,7 @@
 
   function loadApps(callback) {
     if (!hasApi('tizen.application.getAppsInfo')) {
-      state.apps = [];
+      state.appsError = 'Could not load installed apps (getAppsInfo unavailable).';
       if (callback) {
         callback();
       }
@@ -391,6 +410,7 @@
     }
     try {
       tizen.application.getAppsInfo(function (list) {
+        state.appsError = null;
         state.apps = list.filter(function (a) {
           return a.show && a.id !== APP_ID && a.packageId !== 'LnchMvp001';
         }).sort(function (a, b) {
@@ -400,14 +420,16 @@
         if (callback) {
           callback();
         }
-      }, function () {
-        state.apps = [];
+      }, function (e) {
+        state.appsError = 'Could not refresh installed apps. Showing the last loaded list (' +
+          errName(e) + ').';
         if (callback) {
           callback();
         }
       });
     } catch (e) {
-      state.apps = [];
+      state.appsError = 'Could not refresh installed apps. Showing the last loaded list (' +
+        errName(e) + ').';
       if (callback) {
         callback();
       }
@@ -560,11 +582,16 @@
     }
     try {
       tizen.application.getCurrentApplication().hide();
-    } catch (e) { /* ignore */ }
+    } catch (e) {
+      showToast(errName(e));
+    }
   }
 
   function onKeyDown(ev) {
     var code = ev.keyCode;
+    if (ev.repeat && (code === KEY.ENTER || code === KEY.BACK)) {
+      return;
+    }
     if (state.previewing) {
       if (code === KEY.BACK || code === KEY.ENTER) {
         ev.preventDefault();
@@ -630,7 +657,6 @@
   }
 
   function init() {
-    document.body.classList.add('shell');
     state.favouriteIds = readFavouritesFromStorage();
     $('btnEdit').setAttribute('data-focus-id', FOCUS_EDIT);
     $('btnEdit').addEventListener('click', toggleEditMode);

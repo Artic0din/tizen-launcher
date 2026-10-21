@@ -120,6 +120,9 @@ fs.mkdirSync(outDir, { recursive: true });
     favourites: await evalValue('window.__launcher.getState().favouriteIds'),
     pickedUp: await evalValue('window.__launcher.getState().pickedUpId')
   };
+  if (JSON.stringify(report.favouriteMoved.favourites) !== JSON.stringify(['org.tizen.netflix-app', 'com.samsung.tv.cobalt-yt'])) {
+    throw new Error('favourite reorder unexpected: ' + JSON.stringify(report.favouriteMoved.favourites));
+  }
   await shot('04-favourite-moved.png');
 
   await evalValue('document.getElementById("btnEdit").click()');
@@ -135,10 +138,15 @@ fs.mkdirSync(outDir, { recursive: true });
   await wait(400);
   report.hdmiPreview = {
     previewing: await evalValue('window.__launcher.getState().previewing'),
-    bodyClass: await evalValue('document.body.className')
+    bodyClass: await evalValue('document.body.className'),
+    shellVisibility: await evalValue("window.getComputedStyle(document.getElementById('appShell')).visibility")
   };
   report.tvwindowShowCall = await evalValue("(window.__calls||[]).find(function(c){return c.indexOf('show')===0;})||''");
+  report.calls = await evalValue('window.__calls || []');
   await shot('06-hdmi-preview.png');
+  if (report.hdmiPreview.shellVisibility !== 'hidden') {
+    throw new Error('appShell must be hidden during preview, got: ' + report.hdmiPreview.shellVisibility);
+  }
   await key(10009);
   await wait(300);
 
@@ -147,7 +155,6 @@ fs.mkdirSync(outDir, { recursive: true });
   report.sourcesUnavailable = await evalValue("document.getElementById('sourcesMsg').textContent");
   await shot('07-sources-unavailable.png');
 
-  report.calls = await evalValue('window.__calls || []');
   report.console = consoleLines;
 
   if (!report.editMode) {
