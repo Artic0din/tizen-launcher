@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Launcher Debug</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="left">
+  <h1>Launcher Debug <small id="ver"></small></h1>
+  <div id="device" class="line">Device: checking...</div>
+
+  <section>
+    <h2>A. Launch by app ID</h2>
+    <input id="appid" class="f" type="text" placeholder="app ID (e.g. from list D)" autocomplete="off">
+    <button id="btnLaunch" class="f">Launch ID</button>
+    <div id="quick"></div>
+    <div id="launchResult" class="result">Launch: not tried yet</div>
+  </section>
+
+  <section>
+    <h2>B. Remote keys</h2>
+    <button id="btnRegister" class="f">Register supported keys</button>
+    <button id="btnUnregister" class="f">Unregister all</button>
+    <div id="keysSummary" class="result">Supported keys: checking...</div>
+    <div id="keysList" class="small"></div>
+  </section>
+
+  <section>
+    <h2>C. HDMI / Live TV preview (tvwindow)</h2>
+    <button id="btnSources" class="f">Find sources</button>
+    <span id="sourceButtons"></span>
+    <button id="btnFull" class="f">Full window</button>
+    <button id="btnHide" class="f">Stop preview</button>
+    <div id="tvResult" class="result">Preview: not tried yet</div>
+  </section>
+
+  <section>
+    <h2>D. Installed apps (OK = launch)</h2>
+    <button id="btnApps" class="f">Reload app list</button>
+    <div id="appsSummary" class="result">Apps: loading...</div>
+    <div id="apps"></div>
+  </section>
+</div>
+<div id="right">
+  <div id="preview"><span>Preview area (video shows here)</span></div>
+  <h2>Key presses (keydown)</h2>
+  <div id="keylog" class="log"></div>
+  <h2>Log</h2>
+  <div id="log" class="log"></div>
+</div>
+<script src="js/app.js"></script>
+</body>
+</html>
