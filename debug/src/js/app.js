@@ -189,17 +189,17 @@
   /* ---------- C. HDMI / Live TV preview ---------- */
   function previewRect(useFull) {
     var full = useFull !== undefined ? useFull : preview.full;
-    if (full) return { x: 0, y: 0, width: 1920, height: 1080 };
+    if (full) return ['0px', '0px', '1920px', '1080px'];
     var r = $('preview').getBoundingClientRect();
-    return {
-      x: Math.round(r.left),
-      y: Math.round(r.top),
-      width: Math.round(r.width),
-      height: Math.round(r.height)
-    };
+    return [
+      Math.round(r.left) + 'px',
+      Math.round(r.top) + 'px',
+      Math.round(r.width) + 'px',
+      Math.round(r.height) + 'px'
+    ];
   }
   function rectText(rect) {
-    return rect.x + 'px, ' + rect.y + 'px, ' + rect.width + 'px, ' + rect.height + 'px';
+    return rect.join(', ');
   }
   function srcLabel(s) { return s.type + ' ' + s.number; }
   function findSources() {

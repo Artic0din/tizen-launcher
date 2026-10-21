@@ -36,10 +36,13 @@ if (out) fs.mkdirSync(out, { recursive: true });
   report.tvError = await ev("document.getElementById('tvResult').textContent");
   await key(40); report.focusHdmi = await focused(); await key(13); await wait(300);          // Preview HDMI 1 (stub OK)
   report.hdmi = await ev("document.getElementById('tvResult').textContent + ' | bodyClass=' + document.body.className");
+  if (!report.hdmi.includes('show() OK')) throw new Error('HDMI preview failed: ' + report.hdmi);
   await shot('03-hdmi-preview.png');
   await key(40); await key(13); await wait(300); report.full = await ev("document.body.className"); await shot('04-full-window.png');
+  if (!report.full.includes('full')) throw new Error('Full-window toggle failed: ' + report.full);
   await key(10009); await wait(300); report.afterBackFromFull = await ev("document.body.className");
   await key(40); await key(13); await wait(300); report.stopped = await ev("document.getElementById('tvResult').textContent + ' | bodyClass=' + document.body.className");
+  if (!report.stopped.includes('hide OK')) throw new Error('Preview stop failed: ' + report.stopped);
   await ev("Array.from(document.querySelectorAll('#quick button.f')).find(function(b){return b.textContent.indexOf('Launch YouTube')===0;}).focus()");
   report.focusQuick = await focused();
   await key(13); await wait(300);
