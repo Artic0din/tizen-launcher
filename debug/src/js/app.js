@@ -10,6 +10,10 @@
   var keyNames = {};      // code -> name, from getSupportedKeys()
   var apps = [];
   var preview = { source: null, on: false, full: false };
+  var launchSeq = 0;
+  var appsSeq = 0;
+  var sourcesSeq = 0;
+  var previewSeq = 0;
 
   function ts() { var d = new Date(); return d.toTimeString().slice(0, 8); }
   function errText(e) { return e ? ((e.name || 'Error') + ': ' + (e.message || String(e))) : 'unknown error'; }
@@ -38,7 +42,9 @@
   /* ---------- focus (D-pad) ---------- */
   function focusables() {
     return Array.prototype.filter.call(document.querySelectorAll('.f'), function (el) {
-      return !el.disabled && el.offsetParent !== null;
+      if (el.disabled || el.offsetParent === null) return false;
+      var st = window.getComputedStyle(el);
+      return st.visibility !== 'hidden' && st.display !== 'none';
     });
   }
   function moveFocus(step) {
@@ -65,11 +71,13 @@
   /* ---------- D. installed apps ---------- */
   function iconSrc(p) { if (!p) return ''; return /^(file|https?|data):/.test(p) ? p : 'file://' + p; }
   function loadApps() {
-    $('apps').innerHTML = '';
     if (!has('tizen.application.getAppsInfo')) { result('appsSummary', 'Apps: tizen.application.getAppsInfo NOT available', false); return; }
+    var seq = ++appsSeq;
     result('appsSummary', 'Apps: calling getAppsInfo()...');
     try {
       tizen.application.getAppsInfo(function (list) {
+        if (seq !== appsSeq) return;
+        $('apps').innerHTML = '';
         apps = list.slice().sort(function (a, b) { return (b.show - a.show) || String(a.name).localeCompare(String(b.name)); });
         var shown = apps.filter(function (a) { return a.show; }).length;
         var iconOk = 0, iconBad = 0, iconNone = 0;
@@ -94,7 +102,7 @@
         });
         summary();
         buildQuick();
-      }, function (e) { result('appsSummary', 'Apps: getAppsInfo ERROR ' + errText(e), false); });
+      }, function (e) { if (seq !== appsSeq) return; result('appsSummary', 'Apps: getAppsInfo ERROR ' + errText(e), false); });
     } catch (e) { result('appsSummary', 'Apps: getAppsInfo threw ' + errText(e), false); }
   }
 
@@ -104,10 +112,16 @@
     if (!id) { result('launchResult', 'Launch: type an app ID first', false); return; }
     var what = (label ? label + ' ' : '') + '[' + id + ']';
     if (!has('tizen.application.launch')) { result('launchResult', 'Launch ' + what + ': tizen.application.launch NOT available', false); return; }
+    var seq = ++launchSeq;
     result('launchResult', 'Launch ' + what + ': calling launch()...');
     try {
-      tizen.application.launch(id, function () { result('launchResult', 'Launch ' + what + ': SUCCESS (success callback fired)', true); },
-        function (e) { result('launchResult', 'Launch ' + what + ': ERROR ' + errText(e), false); });
+      tizen.application.launch(id, function () {
+        if (seq !== launchSeq) return;
+        result('launchResult', 'Launch ' + what + ': SUCCESS (success callback fired)', true);
+      }, function (e) {
+        if (seq !== launchSeq) return;
+        result('launchResult', 'Launch ' + what + ': ERROR ' + errText(e), false);
+      });
     } catch (e) { result('launchResult', 'Launch ' + what + ': threw ' + errText(e), false); }
   }
   function buildQuick() {
@@ -147,27 +161,49 @@
   }
   function unregisterKeys() {
     var n = 0;
+    var skipped = 0;
+    var bad = [];
     Object.keys(keyNames).forEach(function (c) {
-      try { tizen.tvinputdevice.unregisterKey(keyNames[c]); n++; } catch (e) { /* not registered */ }
+      try { tizen.tvinputdevice.unregisterKey(keyNames[c]); n++; }
+      catch (e) {
+        var msg = errText(e);
+        if (/not registered|InvalidValuesError/i.test(msg)) skipped++;
+        else bad.push(keyNames[c] + ' (' + msg + ')');
+      }
     });
-    result('keysSummary', 'Unregistered ' + n + ' keys. Only arrows/OK/Back reach the app now.');
+    result('keysSummary', 'Unregistered ' + n + ' keys.' +
+      (skipped ? ' Skipped (not registered): ' + skipped + '.' : '') +
+      (bad.length ? ' Failed: ' + bad.join(', ') + '.' : '') +
+      ' Only arrows/OK/Back reach the app now.', bad.length === 0);
   }
 
   /* ---------- C. HDMI / Live TV preview ---------- */
   function previewRect() {
-    if (preview.full) return ['0px', '0px', '1920px', '1080px'];
+    if (preview.full) return { x: 0, y: 0, width: 1920, height: 1080 };
     var r = $('preview').getBoundingClientRect();
-    return [Math.round(r.left) + 'px', Math.round(r.top) + 'px', Math.round(r.width) + 'px', Math.round(r.height) + 'px'];
+    return {
+      x: Math.round(r.left),
+      y: Math.round(r.top),
+      width: Math.round(r.width),
+      height: Math.round(r.height)
+    };
+  }
+  function rectText(rect) {
+    return rect.x + 'px, ' + rect.y + 'px, ' + rect.width + 'px, ' + rect.height + 'px';
   }
   function srcLabel(s) { return s.type + ' ' + s.number; }
   function findSources() {
-    var box = $('sourceButtons'); box.innerHTML = '';
+    var box = $('sourceButtons');
+    var seq = ++sourcesSeq;
+    box.innerHTML = '';
     if (!has('tizen.tvwindow')) { result('tvResult', 'Preview: tizen.tvwindow NOT available', false); return; }
     try {
       tizen.tvwindow.getAvailableWindows(function (w) { log('tvwindow windows: ' + JSON.stringify(w)); }, function (e) { log('getAvailableWindows ERROR ' + errText(e)); });
     } catch (e) { log('getAvailableWindows threw ' + errText(e)); }
     try {
       tizen.systeminfo.getPropertyValue('VIDEOSOURCE', function (vs) {
+        if (seq !== sourcesSeq) return;
+        box.innerHTML = '';
         var con = vs.connected || [], dis = vs.disconnected || [];
         con.forEach(function (s) {
           var b = document.createElement('button'); b.className = 'f'; b.textContent = 'Preview ' + srcLabel(s);
@@ -176,42 +212,70 @@
         });
         result('tvResult', 'Sources: connected ' + (con.map(srcLabel).join(', ') || 'none') +
           '\nDisconnected: ' + (dis.map(srcLabel).join(', ') || 'none'), con.length > 0);
-      }, function (e) { result('tvResult', 'Sources: VIDEOSOURCE ERROR ' + errText(e), false); });
+      }, function (e) { if (seq !== sourcesSeq) return; result('tvResult', 'Sources: VIDEOSOURCE ERROR ' + errText(e), false); });
     } catch (e) { result('tvResult', 'Sources: VIDEOSOURCE threw ' + errText(e), false); }
   }
+  function rollbackPreviewUi(revertFull) {
+    document.body.classList.remove('pv');
+    if (revertFull) {
+      preview.full = false;
+      document.body.classList.remove('full');
+    }
+  }
   function startPreview(s) {
+    var op = ++previewSeq;
     result('tvResult', 'Preview ' + srcLabel(s) + ': calling setSource()...');
     try {
       tizen.tvwindow.setSource(s, function (src, type) {
+        if (op !== previewSeq) return;
         preview.source = s;
-        showWindow('setSource ' + srcLabel(s) + ' OK (window ' + type + ')');
-      }, function (e) { result('tvResult', 'Preview ' + srcLabel(s) + ': setSource ERROR ' + errText(e), false); }, 'MAIN');
+        showWindow('setSource ' + srcLabel(s) + ' OK (window ' + type + ')', op);
+      }, function (e) {
+        if (op !== previewSeq) return;
+        result('tvResult', 'Preview ' + srcLabel(s) + ': setSource ERROR ' + errText(e), false);
+      }, 'MAIN');
     } catch (e) { result('tvResult', 'Preview ' + srcLabel(s) + ': setSource threw ' + errText(e), false); }
   }
-  function showWindow(prefix) {
+  function showWindow(prefix, op) {
+    if (op === undefined) op = previewSeq;
     var rect = previewRect();
+    var enteredFull = preview.full;
     document.body.classList.add('pv');
     try {
       tizen.tvwindow.show(function () {
+        if (op !== previewSeq) { rollbackPreviewUi(true); return; }
         preview.on = true;
-        result('tvResult', prefix + '\nshow() OK at ' + rect.join(',') +
+        result('tvResult', prefix + '\nshow() OK at ' + rectText(rect) +
           '\nNOW CHECK BY EYE: picture in the green box? sound? Do arrows/Back still work?', true);
-      }, function (e) { result('tvResult', prefix + '\nshow() ERROR ' + errText(e), false); }, rect, 'MAIN');
-    } catch (e) { result('tvResult', prefix + '\nshow() threw ' + errText(e), false); }
+      }, function (e) {
+        rollbackPreviewUi(enteredFull);
+        if (op !== previewSeq) return;
+        result('tvResult', prefix + '\nshow() ERROR ' + errText(e), false);
+      }, rect, 'MAIN');
+    } catch (e) {
+      rollbackPreviewUi(enteredFull);
+      result('tvResult', prefix + '\nshow() threw ' + errText(e), false);
+    }
   }
   function toggleFull() {
-    if (!preview.source) { result('tvResult', 'Full window: start a preview first', false); return; }
+    if (!preview.on || !preview.source) { result('tvResult', 'Full window: start a preview first', false); return; }
     preview.full = !preview.full;
     document.body.classList.toggle('full', preview.full);
     showWindow('Full window ' + (preview.full ? 'ON (Back returns)' : 'OFF'));
     if (!preview.full) $('btnFull').focus(); // hidden UI drops focus while full
   }
   function stopPreview() {
-    preview.full = false; document.body.classList.remove('full');
+    previewSeq++;
+    preview.full = false;
+    document.body.classList.remove('full');
     if (!has('tizen.tvwindow')) return;
     try {
-      tizen.tvwindow.hide(function () { preview.on = false; document.body.classList.remove('pv'); result('tvResult', 'Preview stopped (hide OK)', true); },
-        function (e) { result('tvResult', 'hide ERROR ' + errText(e), false); }, 'MAIN');
+      tizen.tvwindow.hide(function () {
+        preview.on = false;
+        preview.source = null;
+        document.body.classList.remove('pv');
+        result('tvResult', 'Preview stopped (hide OK)', true);
+      }, function (e) { result('tvResult', 'hide ERROR ' + errText(e), false); }, 'MAIN');
     } catch (e) { result('tvResult', 'hide threw ' + errText(e), false); }
   }
 

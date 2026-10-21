@@ -39,8 +39,14 @@ const root = path.resolve(__dirname, '..');
   await key(40); await key(13); await wait(300); report.full = await ev("document.body.className"); await shot('04-full-window.png');
   await key(10009); await wait(300); report.afterBackFromFull = await ev("document.body.className");
   await key(40); await key(13); await wait(300); report.stopped = await ev("document.getElementById('tvResult').textContent + ' | bodyClass=' + document.body.className");
-  await key(38, 8); report.focusQuick = await focused(); await key(13); await wait(300);   // Launch YouTube quick button
+  await ev("Array.from(document.querySelectorAll('#quick button.f')).find(function(b){return b.textContent.indexOf('Launch YouTube')===0;}).focus()");
+  report.focusQuick = await focused();
+  await key(13); await wait(300);
   report.launchOk = await ev("document.getElementById('launchResult').textContent");
+  report.launchYoutubeCall = await ev("(window.__calls||[]).filter(function(c){return c.indexOf('launch')===0;}).pop()||''");
+  if (!report.launchOk.includes('SUCCESS') || !report.launchYoutubeCall.includes('111299001912')) {
+    throw new Error('YouTube quick launch failed: ' + JSON.stringify({ launchOk: report.launchOk, launchYoutubeCall: report.launchYoutubeCall }));
+  }
   await ev("document.getElementById('appid').value='9999999999'; 1"); await key(38, 1); report.focusLaunchBtn = await focused(); await key(13); await wait(300);
   report.launchErr = await ev("document.getElementById('launchResult').textContent");
   await shot('05-launch-error.png');
