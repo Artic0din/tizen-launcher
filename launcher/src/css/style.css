@@ -1,0 +1,172 @@
+html, body {
+  margin: 0;
+  height: 1080px;
+  width: 1920px;
+  overflow: hidden;
+  background: #0d0d12;
+  color: #f2f2f2;
+  font: 28px/1.35 "Segoe UI", system-ui, sans-serif;
+}
+
+body.previewing {
+  background: transparent;
+}
+
+body.previewing #appShell {
+  visibility: hidden;
+}
+
+.shell {
+  box-sizing: border-box;
+  padding: 28px 48px 32px;
+  height: 100%;
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 12px;
+}
+
+h1 {
+  font-size: 44px;
+  font-weight: 600;
+  margin: 0;
+}
+
+h2 {
+  font-size: 32px;
+  font-weight: 500;
+  margin: 0 0 12px;
+  color: #9ecbff;
+}
+
+.section {
+  margin-bottom: 28px;
+}
+
+.row {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 20px;
+  min-height: 140px;
+  align-items: flex-start;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  max-height: 620px;
+  overflow-x: auto;
+  overflow-y: auto;
+  align-content: flex-start;
+}
+
+.tile {
+  width: 200px;
+  min-height: 168px;
+  padding: 14px 12px 16px;
+  box-sizing: border-box;
+  background: #22232e;
+  border: 4px solid #3a3d4d;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  color: inherit;
+  font: inherit;
+  cursor: default;
+}
+
+.tile-control {
+  min-height: auto;
+  width: auto;
+  padding: 12px 28px;
+  flex-direction: row;
+}
+
+.tile img {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  margin-bottom: 10px;
+  background: #15151a;
+  border-radius: 8px;
+}
+
+.tile .label {
+  font-size: 24px;
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+.tile.remove {
+  width: 120px;
+  min-height: 80px;
+  background: #3a1f24;
+  border-color: #6a3038;
+  font-size: 22px;
+}
+
+.tile.picked {
+  border-color: #ffd400;
+  background: #4a4000;
+}
+
+.f:focus,
+.tile.focus {
+  outline: none;
+  border-color: #ffd400;
+  box-shadow: 0 0 0 3px rgba(255, 212, 0, 0.35);
+  background: #3a3500;
+}
+
+.edit-hint {
+  margin: 0;
+  font-size: 22px;
+  color: #ccc;
+  max-width: 900px;
+}
+
+.empty, .msg {
+  margin: 8px 0 0;
+  font-size: 26px;
+  color: #bbb;
+}
+
+.msg.err {
+  color: #ff8a80;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 64px;
+  transform: translateX(-50%);
+  max-width: 80%;
+  padding: 18px 32px;
+  background: rgba(40, 10, 10, 0.92);
+  border: 3px solid #e53935;
+  border-radius: 12px;
+  font-size: 28px;
+  z-index: 100;
+}
+
+.toast.show {
+  display: block;
+}
+
+.badge-pin {
+  font-size: 18px;
+  color: #ffd400;
+  margin-top: 6px;
+}

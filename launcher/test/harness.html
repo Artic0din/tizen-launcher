@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Launcher harness</title>
+<link rel="stylesheet" href="../src/css/style.css">
+</head>
+<body>
+<div id="toast" class="toast hidden" aria-live="polite"></div>
+<div id="appShell" class="shell">
+<header class="bar">
+  <h1>Launcher</h1>
+  <button id="btnEdit" class="f tile-control" type="button">Edit favourites</button>
+  <p id="editHint" class="edit-hint hidden">Edit mode: Enter on an app to pin or unpin. Enter a favourite to pick it up, Left/Right to move, Enter to drop. Use Remove to unpin.</p>
+</header>
+<section id="secFav" class="section">
+  <h2>Favourites</h2>
+  <div id="favourites" class="row tiles"></div>
+  <p id="favEmpty" class="empty hidden">No favourites yet. Turn on Edit favourites and pin apps from the grid below.</p>
+</section>
+<section id="secSources" class="section">
+  <h2>Sources</h2>
+  <div id="sources" class="row tiles"></div>
+  <p id="sourcesMsg" class="msg hidden"></p>
+</section>
+<section id="secApps" class="section">
+  <h2>Apps</h2>
+  <p id="appsError" class="msg err hidden"></p>
+  <div id="apps" class="grid tiles"></div>
+</section>
+</div>
+<script src="stub-apps.js"></script>
+<script src="../src/js/preview.js"></script>
+<script src="stub-tizen.js"></script>
+<script src="../src/js/favourites.js"></script>
+<script src="../src/js/focus.js"></script>
+<script src="../src/js/app.js"></script>
+</body>
+</html>
