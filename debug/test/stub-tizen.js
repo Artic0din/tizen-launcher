@@ -12,6 +12,10 @@
   var keys = [{ name: 'ColorF0Red', code: 403 }, { name: 'MediaPlayPause', code: 10252 }, { name: 'ChannelUp', code: 427 },
     { name: 'Source', code: 10072 }, { name: 'Exit', code: 10182 }, { name: 'VolumeUp', code: 447 }, { name: 'Info', code: 457 }];
   function NotFound(m) { return { name: 'NotFoundError', message: m }; }
+  function TypeMismatch(m) { return { name: 'TypeMismatchError', message: m }; }
+  function validShowRect(r) {
+    return Array.isArray(r) && r.length === 4 && r.every(function (s) { return typeof s === 'string'; });
+  }
   window.tizen = {
     systeminfo: {
       getCapability: function (k) { rec('getCapability', [k]); return '8.0'; },
@@ -33,7 +37,13 @@
     tvwindow: {
       getAvailableWindows: function (ok) { rec('getAvailableWindows', []); later(function () { ok(['MAIN']); }); },
       setSource: function (s, ok, err, t) { rec('setSource', [s, t]); later(function () { s.type === 'HDMI' ? ok(s, t) : err({ name: 'NotSupportedError', message: 'stub: no tuner' }); }); },
-      show: function (ok, err, r, t) { rec('show', [r, t]); later(function () { ok(r, t); }); },
+      show: function (ok, err, r, t) {
+        rec('show', [r, t]);
+        later(function () {
+          if (!validShowRect(r)) { err(TypeMismatch('rect must be an array of 4 strings (e.g. 0px, 0px, 960px, 540px)')); return; }
+          ok(r, t);
+        });
+      },
       hide: function (ok, err, t) { rec('hide-window', [t]); later(ok); }
     }
   };
