@@ -6,7 +6,7 @@ App id `LnchDbg001.LauncherDebug`, package `LnchDbg001`, profile `tv-samsung`, r
 - `src/`: app source (`config.xml`, `index.html`, `js/app.js`, `css/style.css`, `icon.png`). No frameworks, no network.
 - `dist/LauncherDebug-unsigned.wgt`: plain zip of `src/`, **unsigned**. It will not install anywhere until TV Ship
   packages `src/` with Ryan's Samsung profile on his Mac (ship guide 6b/6c):
-  `tizen package -t wgt -s <PROFILE> -- <SRC>` → `tizen install` → `tizen run -p LnchDbg001.LauncherDebug` → `tizen uninstall -p LnchDbg001`.
+  `tizen package -t wgt -s <PROFILE> -- <SRC>` → `tizen install -n <signed.wgt> -t <TV_DUID>` → `tizen run -p LnchDbg001.LauncherDebug` → `tizen uninstall -p LnchDbg001`.
 - `test/`: browser-only stub of the tizen APIs + CDP driver (not packaged).
 - `evidence/`: screenshots and JSON from the stubbed browser run; emulator notes.
 

@@ -3,6 +3,7 @@
 const fs = require('fs'); const path = require('path');
 const [port, out] = process.argv.slice(2);
 const root = path.resolve(__dirname, '..');
+if (out) fs.mkdirSync(out, { recursive: true });
 (async () => {
   const tab = (await (await fetch(`http://127.0.0.1:${port}/json/list`)).json()).find(t => t.type === 'page');
   const ws = new WebSocket(tab.webSocketDebuggerUrl); let id = 0; const pend = {}; const cons = [];

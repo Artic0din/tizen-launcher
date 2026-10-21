@@ -8,6 +8,7 @@
   var NEVER_REGISTER = ['Exit', 'Home', 'VolumeUp', 'VolumeDown', 'VolumeMute', 'Power', 'PowerOff'];
   var KEY = { LEFT: 37, UP: 38, RIGHT: 39, DOWN: 40, ENTER: 13, BACK: 10009, IME_DONE: 65376, IME_CANCEL: 65385 };
   var keyNames = {};      // code -> name, from getSupportedKeys()
+  var registeredKeyNames = {}; // names successfully registered in this session
   var apps = [];
   var preview = { source: null, on: false, full: false };
   var launchSeq = 0;
@@ -137,7 +138,7 @@
 
   /* ---------- B. keys ---------- */
   function supportedKeys() {
-    if (!has('tizen.tvinputdevice.getSupportedKeys')) { result('keysSummary', 'Supported keys: tizen.tvinputdevice NOT available', false); return []; }
+    if (!has('tizen.tvinputdevice.getSupportedKeys')) { result('keysSummary', 'Supported keys: tizen.tvinputdevice NOT available', false); return null; }
     try {
       var keys = tizen.tvinputdevice.getSupportedKeys();
       keyNames = {};
@@ -145,13 +146,16 @@
       result('keysSummary', 'Supported keys: getSupportedKeys OK, ' + keys.length + ' keys (not yet registered)', true);
       $('keysList').textContent = keys.map(function (k) { return k.name + ':' + k.code; }).join('  ');
       return keys;
-    } catch (e) { result('keysSummary', 'Supported keys: threw ' + errText(e), false); return []; }
+    } catch (e) { result('keysSummary', 'Supported keys: threw ' + errText(e), false); return null; }
   }
   function registerKeys() {
-    var keys = supportedKeys(), ok = [], bad = [], skipped = [];
+    var keys = supportedKeys();
+    if (keys === null) return;
+    registeredKeyNames = {};
+    var ok = [], bad = [], skipped = [];
     keys.forEach(function (k) {
       if (NEVER_REGISTER.indexOf(k.name) >= 0) { skipped.push(k.name); return; }
-      try { tizen.tvinputdevice.registerKey(k.name); ok.push(k.name); } catch (e) { bad.push(k.name + ' (' + errText(e) + ')'); }
+      try { tizen.tvinputdevice.registerKey(k.name); ok.push(k.name); registeredKeyNames[k.name] = true; } catch (e) { bad.push(k.name + ' (' + errText(e) + ')'); }
     });
     var src = keys.some(function (k) { return k.name === 'Source'; });
     result('keysSummary', 'Registered ' + ok.length + '/' + keys.length + '. Failed: ' + (bad.join(', ') || 'none') +
@@ -160,15 +164,20 @@
       '\nNow press keys: each one that reaches the app shows in "Key presses".', bad.length === 0);
   }
   function unregisterKeys() {
+    var names = Object.keys(registeredKeyNames);
+    if (!names.length) {
+      result('keysSummary', 'Unregistered 0 keys (none were registered this session). Only arrows/OK/Back reach the app now.');
+      return;
+    }
     var n = 0;
     var skipped = 0;
     var bad = [];
-    Object.keys(keyNames).forEach(function (c) {
-      try { tizen.tvinputdevice.unregisterKey(keyNames[c]); n++; }
+    names.forEach(function (name) {
+      try { tizen.tvinputdevice.unregisterKey(name); n++; delete registeredKeyNames[name]; }
       catch (e) {
         var msg = errText(e);
-        if (/not registered|InvalidValuesError/i.test(msg)) skipped++;
-        else bad.push(keyNames[c] + ' (' + msg + ')');
+        if (/not registered|InvalidValuesError/i.test(msg)) { skipped++; delete registeredKeyNames[name]; }
+        else bad.push(name + ' (' + msg + ')');
       }
     });
     result('keysSummary', 'Unregistered ' + n + ' keys.' +
@@ -178,8 +187,9 @@
   }
 
   /* ---------- C. HDMI / Live TV preview ---------- */
-  function previewRect() {
-    if (preview.full) return { x: 0, y: 0, width: 1920, height: 1080 };
+  function previewRect(useFull) {
+    var full = useFull !== undefined ? useFull : preview.full;
+    if (full) return { x: 0, y: 0, width: 1920, height: 1080 };
     var r = $('preview').getBoundingClientRect();
     return {
       x: Math.round(r.left),
@@ -259,10 +269,25 @@
   }
   function toggleFull() {
     if (!preview.on || !preview.source) { result('tvResult', 'Full window: start a preview first', false); return; }
-    preview.full = !preview.full;
-    document.body.classList.toggle('full', preview.full);
-    showWindow('Full window ' + (preview.full ? 'ON (Back returns)' : 'OFF'));
-    if (!preview.full) $('btnFull').focus(); // hidden UI drops focus while full
+    var wantFull = !preview.full;
+    var op = previewSeq;
+    var rect = previewRect(wantFull);
+    var prefix = 'Full window ' + (wantFull ? 'ON (Back returns)' : 'OFF');
+    document.body.classList.add('pv');
+    try {
+      tizen.tvwindow.show(function () {
+        if (op !== previewSeq) return;
+        preview.full = wantFull;
+        document.body.classList.toggle('full', wantFull);
+        preview.on = true;
+        result('tvResult', prefix + '\nshow() OK at ' + rectText(rect) +
+          '\nNOW CHECK BY EYE: picture in the green box? sound? Do arrows/Back still work?', true);
+        if (!wantFull) $('btnFull').focus();
+      }, function (e) {
+        if (op !== previewSeq) return;
+        result('tvResult', prefix + '\nshow() ERROR ' + errText(e), false);
+      }, rect, 'MAIN');
+    } catch (e) { result('tvResult', prefix + '\nshow() threw ' + errText(e), false); }
   }
   function stopPreview() {
     previewSeq++;
