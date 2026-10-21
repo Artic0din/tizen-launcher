@@ -14,7 +14,9 @@
   function NotFound(m) { return { name: 'NotFoundError', message: m }; }
   function TypeMismatch(m) { return { name: 'TypeMismatchError', message: m }; }
   function validShowRect(r) {
-    return Array.isArray(r) && r.length === 4 && r.every(function (s) { return typeof s === 'string'; });
+    return Array.isArray(r) && r.length === 4 && r.every(function (s) {
+      return typeof s === 'string' && /^\d+px$/.test(s);
+    });
   }
   window.tizen = {
     systeminfo: {
